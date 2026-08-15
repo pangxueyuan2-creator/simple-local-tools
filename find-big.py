@@ -25,10 +25,12 @@ def main():
 
     root = Path(path)
     files = []
-    for dirpath, _, filenames in os.walk(root):
+    for dirpath, _, filenames in os.walk(root, followlinks=False):
         for name in filenames:
             p = Path(dirpath) / name
             try:
+                if p.is_symlink():
+                    continue
                 size = p.stat().st_size
                 files.append((size, p))
             except OSError:
