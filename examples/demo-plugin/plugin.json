@@ -1,0 +1,6 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "agentproof-demo",
+  "version": "0.1.0",
+  "description": "Tiny Agent Plugins 1.0 package used by AgentProof tests and docs."
+}
