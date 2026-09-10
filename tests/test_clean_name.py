@@ -12,9 +12,11 @@ SCRIPT = ROOT / "clean-name.py"
 
 
 class CleanNameTests(unittest.TestCase):
-    def run_script(self, folder: Path) -> subprocess.CompletedProcess[str]:
+    def run_script(
+        self, folder: Path, *extra_args: str
+    ) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
-            [sys.executable, str(SCRIPT), str(folder)],
+            [sys.executable, str(SCRIPT), *extra_args, str(folder)],
             check=True,
             capture_output=True,
             text=True,
@@ -30,6 +32,20 @@ class CleanNameTests(unittest.TestCase):
 
             self.assertFalse(original.exists())
             self.assertTrue((folder / "hello-世界.txt").exists())
+
+    def test_dry_run_reports_without_renaming(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            original = folder / "hello 世界.txt"
+            target = folder / "hello-世界.txt"
+            original.write_text("ok", encoding="utf-8")
+
+            result = self.run_script(folder, "--dry-run")
+
+            self.assertTrue(original.exists())
+            self.assertFalse(target.exists())
+            self.assertIn("would rename:", result.stdout)
+            self.assertIn("hello-世界.txt", result.stdout)
 
     def test_preserves_dotfiles(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
