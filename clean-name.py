@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Rename files by cleaning common junk from their names."""
 
+import argparse
 import re
-import sys
 from pathlib import Path
 
 
@@ -16,17 +16,24 @@ def clean(name: str) -> str:
     return name
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("folder", type=Path, help="folder whose files should be renamed")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="show planned renames without changing any files",
+    )
+    args = parser.parse_args()
+    if not args.folder.is_dir():
+        parser.error(f"not a directory: {args.folder}")
+    return args
+
+
 def main() -> None:
-    if len(sys.argv) < 2:
-        print("Usage: python clean-name.py <folder>")
-        sys.exit(1)
+    args = parse_args()
 
-    folder = Path(sys.argv[1])
-    if not folder.is_dir():
-        print("Not a directory")
-        sys.exit(1)
-
-    for f in folder.iterdir():
+    for f in args.folder.iterdir():
         if not f.is_file():
             continue
 
@@ -43,11 +50,13 @@ def main() -> None:
         new_name = cleaned_stem + f.suffix
         if new_name != f.name:
             target = f.with_name(new_name)
-            if not target.exists():
+            if target.exists():
+                print(f"skip (exists): {new_name}")
+            elif args.dry_run:
+                print(f"would rename: {f.name}  →  {new_name}")
+            else:
                 print(f"{f.name}  →  {new_name}")
                 f.rename(target)
-            else:
-                print(f"skip (exists): {new_name}")
 
 
 if __name__ == "__main__":
