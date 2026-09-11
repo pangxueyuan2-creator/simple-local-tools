@@ -2,8 +2,10 @@
 """List the biggest files under a directory."""
 
 import argparse
+import heapq
 import os
 from pathlib import Path
+from typing import Iterator
 
 
 def human(n: int) -> str:
@@ -34,22 +36,28 @@ def parse_args() -> argparse.Namespace:
     return args
 
 
-def main() -> None:
-    args = parse_args()
-    files: list[tuple[int, Path]] = []
-
-    for dirpath, _, filenames in os.walk(args.path, followlinks=False):
+def iter_file_sizes(root: Path) -> Iterator[tuple[int, Path]]:
+    """Yield file sizes without retaining every discovered path in memory."""
+    for dirpath, _, filenames in os.walk(root, followlinks=False):
         for name in filenames:
             path = Path(dirpath) / name
             try:
                 if path.is_symlink():
                     continue
-                files.append((path.stat().st_size, path))
+                yield path.stat().st_size, path
             except OSError:
                 pass
 
-    files.sort(key=lambda item: item[0], reverse=True)
-    for size, path in files[: args.top]:
+
+def main() -> None:
+    args = parse_args()
+    largest = heapq.nlargest(
+        args.top,
+        iter_file_sizes(args.path),
+        key=lambda item: item[0],
+    )
+
+    for size, path in largest:
         print(f"{human(size):>10}  {path}")
 
 
