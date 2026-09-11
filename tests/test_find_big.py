@@ -1,3 +1,4 @@
+import os
 import subprocess
 import sys
 import tempfile
@@ -43,6 +44,19 @@ class FindBigCliTests(unittest.TestCase):
         self.assertIn("large.txt", lines[0])
         self.assertIn("medium.txt", lines[1])
         self.assertNotIn("small.txt", result.stdout)
+
+    @unittest.skipUnless(hasattr(os, "mkfifo"), "named pipes require POSIX support")
+    def test_skips_non_regular_files(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "regular.txt").write_bytes(b"regular")
+            os.mkfifo(root / "events.pipe")
+
+            result = self.run_cli(str(root))
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("regular.txt", result.stdout)
+        self.assertNotIn("events.pipe", result.stdout)
 
 
 if __name__ == "__main__":
