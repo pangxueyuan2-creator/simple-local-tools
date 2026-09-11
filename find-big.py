@@ -4,6 +4,7 @@
 import argparse
 import heapq
 import os
+import stat
 from pathlib import Path
 from typing import Iterator
 
@@ -37,14 +38,15 @@ def parse_args() -> argparse.Namespace:
 
 
 def iter_file_sizes(root: Path) -> Iterator[tuple[int, Path]]:
-    """Yield file sizes without retaining every discovered path in memory."""
+    """Yield regular-file sizes without following filesystem links."""
     for dirpath, _, filenames in os.walk(root, followlinks=False):
         for name in filenames:
             path = Path(dirpath) / name
             try:
-                if path.is_symlink():
+                info = path.stat(follow_symlinks=False)
+                if not stat.S_ISREG(info.st_mode):
                     continue
-                yield path.stat().st_size, path
+                yield info.st_size, path
             except OSError:
                 pass
 
